@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CivIQ — Decision Intelligence for Hyderabad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root{
+    --paper:#EDE6D6;
+    --paper-light:#F4EFE2;
+    --ink:#1F4E4A;
+    --ink-dark:#163B37;
+    --stamp:#B5482F;
+    --stamp-light:#F0DCD3;
+    --mustard:#D9A441;
+    --mustard-light:#F5E6C5;
+    --charcoal:#2B2B26;
+    --charcoal-soft:#5C594E;
+    --line:#C9BFA5;
+    --ok:#3B6D11;
+    --ok-bg:#E2EDD2;
+    --warn:#854F0B;
+    --warn-bg:#F5E6C5;
+    --crit:#791F1F;
+    --crit-bg:#F5D9D2;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px;
+    color:var(--charcoal);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--mustard-light);}
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 24px 80px;}
+
+  /* Header */
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:3px double var(--ink);
+    padding-bottom:18px;margin-bottom:28px;
+    flex-wrap:wrap;gap:16px;
+  }
+  .brand{display:flex;align-items:baseline;gap:14px;}
+  .brand h1{
+    font-family:'Roboto Slab',serif;font-weight:700;font-size:34px;
+    margin:0;color:var(--ink-dark);letter-spacing:-0.5px;
+  }
+  .brand .seal{
+    width:46px;height:46px;border-radius:50%;border:2.5px solid var(--ink-dark);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Roboto Slab',serif;font-weight:700;font-size:13px;color:var(--ink-dark);
+    transform:rotate(-8deg);flex:none;
+  }
+  .tagline{font-size:13px;color:var(--charcoal-soft);margin-top:4px;font-style:italic;}
+  .file-meta{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--charcoal-soft);
+    text-align:right;line-height:1.7;
+  }
+  .file-meta b{color:var(--ink-dark);}
+
+  /* Zone selector */
+  .zonebar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:26px;}
+  .zonebar button{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;
+    background:var(--paper-light);border:1.5px solid var(--ink);color:var(--ink-dark);
+    padding:7px 14px;border-radius:2px;cursor:pointer;letter-spacing:0.3px;
+  }
+  .zonebar button.active{background:var(--ink);color:var(--paper-light);}
+
+  /* KPI strip = stamped forms */
+  .kpi-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+    gap:18px;margin-bottom:34px;
+  }
+  .kpi-card{
+    background:var(--paper-light);border:1.5px solid var(--charcoal);
+    padding:16px 18px;position:relative;
+  }
+  .kpi-card::before{
+    content:attr(data-ticket);position:absolute;top:8px;right:10px;
+    font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--charcoal-soft);
+  }
+  .kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--charcoal-soft);margin-bottom:8px;}
+  .kpi-value{font-family:'Roboto Slab',serif;font-size:30px;font-weight:700;color:var(--ink-dark);}
+  .kpi-sub{font-size:12px;margin-top:6px;font-weight:500;}
+  .kpi-sub.ok{color:var(--ok);}
+  .kpi-sub.warn{color:var(--warn);}
+  .kpi-sub.crit{color:var(--stamp);}
+  .seal-mark{
+    position:absolute;bottom:10px;right:12px;font-family:'IBM Plex Mono',monospace;
+    font-size:9px;border:1.5px solid currentColor;border-radius:50%;
+    width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+    transform:rotate(8deg);text-align:center;line-height:1.1;
+  }
+  .seal-mark.ok{color:var(--ok);}
+  .seal-mark.warn{color:var(--warn);}
+  .seal-mark.crit{color:var(--stamp);}
+
+  /* Section headers */
+  .section-head{
+    display:flex;align-items:baseline;gap:10px;margin:38px 0 14px;
+  }
+  .section-head .num{font-family:'IBM Plex Mono',monospace;color:var(--stamp);font-size:13px;}
+  .section-head h2{font-family:'Roboto Slab',serif;font-size:19px;margin:0;color:var(--ink-dark);}
+  .section-head .rule{flex:1;border-bottom:1px dashed var(--line);height:1px;}
+
+  /* Panels */
+  .panel-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;}
+  @media (max-width:880px){.panel-grid{grid-template-columns:1fr;}}
+  .panel{
+    background:var(--paper-light);border:1.5px solid var(--charcoal);padding:18px 20px;
+  }
+  .panel h3{font-family:'Roboto Slab',serif;font-size:14px;margin:0 0 12px;color:var(--ink-dark);
+    text-transform:uppercase;letter-spacing:0.5px;}
+  canvas{max-width:100%;}
+
+  /* Anomaly feed */
+  .feed-item{
+    display:flex;gap:12px;padding:10px 0;border-bottom:1px dotted var(--line);
+  }
+  .feed-item:last-child{border-bottom:none;}
+  .tag{
+    font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 7px;border-radius:2px;
+    height:fit-content;white-space:nowrap;font-weight:500;
+  }
+  .tag.crit{background:var(--crit-bg);color:var(--crit);}
+  .tag.warn{background:var(--warn-bg);color:var(--warn);}
+  .tag.ok{background:var(--ok-bg);color:var(--ok);}
+  .feed-text{font-size:13px;line-height:1.5;}
+  .feed-text b{color:var(--ink-dark);}
+
+  /* Recommendations */
+  .rec-item{padding:10px 0;border-bottom:1px dotted var(--line);font-size:13px;line-height:1.6;}
+  .rec-item:last-child{border-bottom:none;}
+  .rec-item .rnum{font-family:'IBM Plex Mono',monospace;color:var(--stamp);font-weight:500;margin-right:6px;}
+
+  /* NL Assistant */
+  .assistant{
+    background:var(--paper-light);border:2px solid var(--ink-dark);padding:22px;margin-top:36px;
+    position:relative;
+  }
+  .assistant::before{
+    content:'FORM CQ-7 · CITIZEN QUERY DESK';
+    position:absolute;top:-11px;left:18px;background:var(--paper-light);
+    padding:0 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--stamp);letter-spacing:0.5px;
+  }
+  .assistant h3{font-family:'Roboto Slab',serif;font-size:17px;margin:4px 0 4px;color:var(--ink-dark);}
+  .assistant p.hint{font-size:12px;color:var(--charcoal-soft);margin:0 0 16px;}
+  .qa-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .qa-row input{
+    flex:1;min-width:240px;font-family:'Inter',sans-serif;font-size:14px;
+    padding:11px 13px;border:1.5px solid var(--charcoal);background:#fff;border-radius:2px;
+  }
+  .qa-row button{
+    font-family:'Roboto Slab',serif;font-weight:600;font-size:13px;
+    background:var(--ink-dark);color:var(--paper-light);border:none;
+    padding:0 22px;border-radius:2px;cursor:pointer;
+  }
+  .qa-row button:disabled{opacity:0.5;cursor:wait;}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .chips button{
+    background:transparent;border:1px solid var(--line);color:var(--charcoal-soft);
+    font-size:11px;padding:5px 10px;border-radius:14px;cursor:pointer;font-family:'Inter',sans-serif;
+  }
+  .answer-box{
+    margin-top:18px;padding:16px 18px;background:#fff;border-left:3px solid var(--stamp);
+    font-size:14px;line-height:1.7;display:none;
+  }
+  .answer-box.show{display:block;}
+  .answer-box .stamp-line{
+    font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--stamp);
+    margin-bottom:8px;letter-spacing:0.5px;
+  }
+
+  footer{
+    margin-top:50px;padding-top:18px;border-top:1px dashed var(--line);
+    font-size:11px;color:var(--charcoal-soft);text-align:center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="seal">GHMC</div>
+      <div>
+        <h1>CivIQ</h1>
+        <div class="tagline">AI decision intelligence for Hyderabad's smart wards</div>
+      </div>
+    </div>
+    <div class="file-meta">
+      FILE NO. <b>HYD/CIVIQ/2026</b><br/>
+      STATUS: <b>LIVE FEED</b><br/>
+      <span id="clock"></span>
+    </div>
+  </header>
+
+  <div class="zonebar" id="zonebar"></div>
+
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="section-head"><span class="num">01</span><h2>Monitoring charts</h2><div class="rule"></div></div>
+  <div class="panel-grid">
+    <div class="panel">
+      <h3>Air quality index — 7 day trend</h3>
+      <div style="position:relative;height:230px;">
+        <canvas id="aqiChart" role="img" aria-label="Line chart of AQI trend over 7 days across Hyderabad zones"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Energy load forecast (next 24h)</h3>
+      <div style="position:relative;height:230px;">
+        <canvas id="energyChart" role="img" aria-label="Area chart forecasting electricity load for next 24 hours"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-grid" style="margin-top:20px;">
+    <div class="panel">
+      <h3>Transit delay by corridor (minutes, anomalies flagged)</h3>
+      <div style="position:relative;height:220px;">
+        <canvas id="transitChart" role="img" aria-label="Bar chart of transit delay minutes by corridor with anomalies highlighted in red"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Open citizen requests by category</h3>
+      <div style="position:relative;height:220px;">
+        <canvas id="complaintsChart" role="img" aria-label="Bar chart of open citizen complaint counts by category"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-head"><span class="num">02</span><h2>AI anomaly detection</h2><div class="rule"></div></div>
+  <div class="panel" id="anomalyPanel"></div>
+
+  <div class="section-head"><span class="num">03</span><h2>Recommended actions</h2><div class="rule"></div></div>
+  <div class="panel" id="recPanel"></div>
+
+  <div class="assistant">
+    <h3>Ask CivIQ</h3>
+    <p class="hint">Natural-language query over live ward data — grounded retrieval, not a generic chatbot. Try a sample question or type your own.</p>
+    <div class="qa-row">
+      <input id="qInput" type="text" placeholder="e.g. Which zone has the worst air quality this week?" />
+      <button id="qBtn" onclick="askCivIQ()">Ask</button>
+    </div>
+    <div class="chips">
+      <button onclick="askSample('Which zone has the worst air quality this week?')">Worst AQI zone?</button>
+      <button onclick="askSample('Where should we prioritize transit fixes?')">Transit priorities?</button>
+      <button onclick="askSample('Is energy demand going to exceed safe capacity tonight?')">Energy risk tonight?</button>
+      <button onclick="askSample('What is driving the rise in citizen complaints?')">Complaint drivers?</button>
+    </div>
+    <div class="answer-box" id="answerBox"></div>
+  </div>
+
+  <footer>
+    CivIQ — built for the AI for Better Living and Smarter Communities hackathon · synthetic demo data for Hyderabad wards · architecture maps to Vertex AI / Gemini / BigQuery / Looker (see README)
+  </footer>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
